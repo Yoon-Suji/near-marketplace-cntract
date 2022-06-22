@@ -1,4 +1,5 @@
 import { Product, listedProducts } from './model';
+import { ContractPromiseBatch, context } from 'near-sdk-as';
 
 /* The string PRODUCTS in the PersistentUnorderedMap's constructor is the unique prefix to use for every key.
     Warning: The key for the persistent collection should be as short as possible 
@@ -19,4 +20,17 @@ export function getProduct(id: string): Product | null {
 
 export function getProducts(): Product[] {
     return listedProducts.values();
+}
+
+export function buyProduct(productId: string): void {
+    const product = getProduct(productId);
+    if (product == null) {
+        throw new Error("product not found");
+    }
+    if (product.price.toString() != context.attachedDeposit.toString()) {
+        throw new Error("attached deposit should equal to the product's price");
+    }
+    ContractPromiseBatch.create(product.owner).transfer(context.attachedDeposit);
+    product.incrementSoldAmount();
+    listedProducts.set(product.id, product);
 }
